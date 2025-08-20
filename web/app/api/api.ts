@@ -12,10 +12,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   // 例如，如果你的前端运行在 localhost:3000，
   // 请求 /api/services 就会发往 http://localhost:3000/api/services
 
-  console.log("-=->",endpoint)
   const url = endpoint;
-  console.log("-=->",url)
-
   try {
     const response = await fetch(url, options);
 

@@ -286,7 +286,10 @@ func (c ClickHouse) GetSpans(query types.GetSpansRequest) (*types.Trace, error) 
 	defer rows.Close()
 
 	// 解析结果
-	var trace *types.Trace
+	var trace = &types.Trace{
+		TraceId: query.TraceId,
+		Spans:   []types.Span{},
+	}
 	for rows.Next() {
 		var span types.Span
 		var eventsTimestamps []time.Time
@@ -328,10 +331,6 @@ func (c ClickHouse) GetSpans(query types.GetSpansRequest) (*types.Trace, error) 
 		}
 
 		// 将 Span 添加到对应的 Trace
-		trace = &types.Trace{
-			TraceId: span.TraceId,
-			Spans:   []types.Span{},
-		}
 		trace.Spans = append(trace.Spans, span)
 	}
 
