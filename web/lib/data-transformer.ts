@@ -22,19 +22,30 @@ function convertRealSpanToSpan(realSpan: RealSpan): Span {
   const tags: Tag[] = convertAttributesToTags(realSpan.span_attributes)
   const process: Process[] = convertResourceAttributesToProcess(realSpan.resource_attributes)
 
-  // Check if span has error based on status code
-  const hasError =
-    realSpan.status_code === "Error" ||
-    realSpan.status_message !== "" ||
-    realSpan.span_attributes["http.response.status_code"] >= 400
+  // Robust error detection
+  const statusCodeUpper = String(realSpan.status_code || "").toUpperCase()
+  const hasStatusError = statusCodeUpper === "STATUS_CODE_ERROR" || statusCodeUpper === "ERROR"
+
+  const httpStatusRaw =
+    (realSpan.span_attributes as any)["http.status_code"] ??
+    (realSpan.span_attributes as any)["http.response.status_code"]
+  const httpStatus = httpStatusRaw != null ? parseInt(String(httpStatusRaw), 10) : undefined
+  const hasHttpError = typeof httpStatus === "number" && !Number.isNaN(httpStatus) && httpStatus >= 400
+
+  const hasExceptionEvent = Array.isArray(realSpan.events)
+    ? realSpan.events.some((e: any) => e && e.name === "exception")
+    : false
+
+  const hasError = hasStatusError || hasHttpError || hasExceptionEvent || realSpan.status_message !== ""
 
   return {
     spanId: realSpan.span_id,
     parentSpanId: realSpan.parent_span_id || undefined,
     operationName: realSpan.span_name,
     serviceName: realSpan.service_name,
-    startTime: new Date(realSpan.timestamp).getTime() * 1000, // Convert to microseconds
-    duration: realSpan.duration,
+    startTime: new Date(realSpan.timestamp).getTime() * 1000, // ms -> μs
+    // OpenTelemetry duration is commonly in nanoseconds; convert to microseconds for UI
+    duration: Math.floor(realSpan.duration / 1000),
     tags,
     process,
     hasError,

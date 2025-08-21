@@ -12,7 +12,7 @@ export default function SpanDetail({ span }: SpanDetailProps) {
   return (
     <div>
       <div className="mb-3">
-        <h3 className="text-sm font-semibold truncate" title={span.operationName}>
+        <h3 className="text-sm font-semibold break-words whitespace-pre-wrap leading-snug" title={span.operationName}>
           {span.operationName}
         </h3>
         <div className="flex items-center gap-2 mt-1">
@@ -53,7 +53,7 @@ export default function SpanDetail({ span }: SpanDetailProps) {
             <div>{span.serviceName}</div>
 
             <div className="font-medium text-gray-600">Operation:</div>
-            <div>{span.operationName}</div>
+            <div className="break-words whitespace-pre-wrap leading-relaxed max-h-24 overflow-auto pr-1">{span.operationName}</div>
 
             <div className="font-medium text-gray-600">Span ID:</div>
             <div className="font-mono text-xs truncate" title={span.spanId}>
@@ -91,9 +91,9 @@ export default function SpanDetail({ span }: SpanDetailProps) {
             {span.scopeName && (
               <>
                 <div className="font-medium text-gray-600">Scope:</div>
-                <div>
-                  {span.scopeName}
-                  {span.scopeVersion && <span className="text-gray-500 ml-1">v{span.scopeVersion}</span>}
+                <div className="break-all whitespace-pre-wrap leading-relaxed max-h-24 overflow-auto pr-1">
+                  <div>{span.scopeName}</div>
+                  {span.scopeVersion && <div className="text-gray-500">v{span.scopeVersion}</div>}
                 </div>
               </>
             )}
@@ -123,16 +123,18 @@ export default function SpanDetail({ span }: SpanDetailProps) {
 
         <TabsContent value="process" className="pt-3">
           {span.process && span.process.length > 0 ? (
-            <div className="space-y-2">
-              {span.process.map((proc, index) => (
-                <div key={index} className="flex items-start p-2 bg-blue-50 rounded-md">
-                  <Settings size={14} className="mr-2 mt-0.5 text-blue-500" />
-                  <div className="flex-1">
-                    <div className="font-medium text-xs">{proc.key}</div>
-                    <div className="text-xs break-all mt-0.5">{proc.value}</div>
+            <div className="max-h-[36rem] overflow-auto pr-1">
+              <div className="space-y-2">
+                {span.process.map((proc, index) => (
+                  <div key={index} className="flex items-start p-2 bg-blue-50 rounded-md">
+                    <Settings size={14} className="mr-2 mt-0.5 text-blue-500" />
+                    <div className="flex-1">
+                      <div className="font-medium text-xs break-words">{proc.key}</div>
+                      <div className="text-xs break-all mt-0.5">{proc.value}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-gray-500">

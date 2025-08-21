@@ -101,6 +101,8 @@ export interface FilterCriteria {
   operations: string[]
   tags: TagFilter[]
   timeRange: TimeRange
+  startTime?: number | null
+  endTime?: number | null
   limit: number
 }
 

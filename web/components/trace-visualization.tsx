@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ChevronDown, ChevronRight, Clock, AlertCircle, Info, Filter, X } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -17,6 +17,16 @@ interface TraceVisualizationProps {
 }
 
 export default function TraceVisualization({ trace }: TraceVisualizationProps) {
+  // Choose readable text color based on background
+  const getContrastColor = (hexColor: string) => {
+    const hex = hexColor.replace("#", "")
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+    // Perceived luminance formula
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000
+    return brightness > 160 ? "#111827" : "#ffffff" // slate-900 or white
+  }
   const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set([trace.spans[0]?.spanId || ""]))
   const [selectedSpan, setSelectedSpan] = useState<Span | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -87,22 +97,30 @@ export default function TraceVisualization({ trace }: TraceVisualizationProps) {
       .slice(0, filters.limit)
   }, [trace.spans, filters])
 
-  // Build the span hierarchy
+  // Build the span hierarchy with robust root detection
   const spanMap = new Map<string, Span>()
   const childrenMap = new Map<string, Span[]>()
+  const spanIdSet = new Set(filteredSpans.map((s) => s.spanId))
 
   filteredSpans.forEach((span) => {
     spanMap.set(span.spanId, span)
 
-    if (!childrenMap.has(span.parentSpanId || "root")) {
-      childrenMap.set(span.parentSpanId || "root", [])
+    const parentId = span.parentSpanId && spanIdSet.has(span.parentSpanId) ? span.parentSpanId : "root"
+    if (!childrenMap.has(parentId)) {
+      childrenMap.set(parentId, [])
     }
-
-    childrenMap.get(span.parentSpanId || "root")?.push(span)
+    childrenMap.get(parentId)?.push(span)
   })
 
-  // Root spans have no parent
-  const rootSpans = childrenMap.get("root") || []
+  // Root spans: parent not present in the set
+  const rootSpans = (childrenMap.get("root") || []).slice().sort((a, b) => a.startTime - b.startTime)
+
+  // Auto-expand root spans on first load if nothing expanded
+  useEffect(() => {
+    if (expandedSpans.size === 0 && rootSpans.length > 0) {
+      setExpandedSpans(new Set(rootSpans.map((s) => s.spanId)))
+    }
+  }, [rootSpans])
 
   const toggleSpan = (spanId: string) => {
     const newExpandedSpans = new Set(expandedSpans)
@@ -161,9 +179,18 @@ export default function TraceVisualization({ trace }: TraceVisualizationProps) {
                 </Tooltip>
               </TooltipProvider>
             )}
-            <Badge variant="outline" className="text-xs py-0 h-5">
-              {span.serviceName}
-            </Badge>
+            {(() => {
+              const color = getSpanColor(span)
+              const text = getContrastColor(color)
+              return (
+                <Badge
+                  className="text-xs py-0 h-5 font-medium"
+                  style={{ backgroundColor: color, color: text, borderColor: color }}
+                >
+                  {span.serviceName}
+                </Badge>
+              )
+            })()}
             <div className="text-xs text-gray-500 flex items-center gap-1">
               <Clock size={12} />
               {formatDuration(span.duration)}
